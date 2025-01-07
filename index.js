@@ -108,6 +108,7 @@ app.get("/todos",async function(req,res)
     const userId=req.userId
     const todos=await TodoModel.find({
         userId
+
     })
     res.json({
         todos:todos
@@ -115,4 +116,33 @@ app.get("/todos",async function(req,res)
     
 })
 
+
+app.put("/todo/:id",auth,async function(req,res)
+{
+    const todoid=req.params.id;
+    const userId=req.userId
+    const{title,done}=req.body
+
+    const todo=await TodoModel.findByIdAndUpdate(todoId,{title,done},{new:true})
+    if (todo)
+    {
+        res.json({
+            message:"Todo updated",todo
+        })
+    }
+})
+app.delete("/todo/:id",auth,async function(req,res)
+{
+    const id=req.params.id;
+    const userId=req.userId
+    
+
+    const todo=await TodoModel.findByIdAndDelete({_id:id,userId})
+    if (todo)
+    {
+        res.json({
+            message:"Todo updated",todo
+        })
+    }
+})
 app.listen(3007)
