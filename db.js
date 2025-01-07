@@ -4,7 +4,10 @@ const ObjectId=mongoose.ObjectId
 
 const User=new Schema(
     {
-        email:String,
+        email:{
+            type:String,
+            unique:true,
+        },
         name:String,
         password:String
     }

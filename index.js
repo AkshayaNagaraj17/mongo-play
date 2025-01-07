@@ -9,13 +9,30 @@ mongoose.connect("mongodb+srv://cnagaraj332:vis4NvH3ZRr97kDU@cluster0.y65wu.mong
 app.use(express.json())
 
 
+function auth(req,res,next)
+{
+    const token=req.headers.token;
+    const decoded=jwt.verify(token,jwt_secret)
+
+    if(decoded)
+    {
+        req.userId=decoded.id //have to give id
+        next()
+    }
+    else
+    {
+        res.status(403).json({
+            message:"baddd"
+        })
+    }
+}
 app.post("/signup",async function(req,res)
 {
     const email=req.body.email;
     const name=req.body.name;
     const password=req.body.password;
 
-    await UserModel.create(
+    await UserModel.create(  // without this await the response will not be given
         {
             email:email,
             name:name,
@@ -44,7 +61,8 @@ app.post("/signin", async function(req,res)
     if (user)
     {
         const token=jwt.sign(
-            {id:user_id}
+            {id:user._id.toString()}   //id:user.  format
+
             ,jwt_secret)
             res.json(
                 {
@@ -64,14 +82,37 @@ app.post("/signin", async function(req,res)
 
 })
 
-app.post("/todo",function(req,res)
+app.post("/todo",auth,async function(req,res)
 {
+    const userId=req.userId;
+    const title=req.body.title;
+    const done=req.body.done
+
+    await TodoModel.create(
+        {
+            userId,
+           title,
+            done
+        }
+    )
+    res.json(
+        {
+            message:"todo craeted"
+        }
+    )
 
 })
 
-app.get("/todos",function(req,res)
+app.get("/todos",async function(req,res)
 {
-
+    const userId=req.userId
+    const todos=await TodoModel.find({
+        userId
+    })
+    res.json({
+        todos:todos
+    })
+    
 })
 
 app.listen(3007)
