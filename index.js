@@ -4,6 +4,7 @@ const mongoose=require("mongoose")
 const {UserModel,TodoModel}=require("./db")
 const jwt_secret="aksh1730"
 const jwt=require("jsonwebtoken")
+const bcrypt=require("bcrypt")
 
 mongoose.connect("mongodb+srv://cnagaraj332:vis4NvH3ZRr97kDU@cluster0.y65wu.mongodb.net/todo-aksh")
 app.use(express.json())
@@ -13,11 +14,10 @@ function auth(req,res,next)
 {
     const token=req.headers.token;
     const decoded=jwt.verify(token,jwt_secret)
-
     if(decoded)
     {
         req.userId=decoded.id //have to give id
-        next()
+        next( )
     }
     else
     {
@@ -32,11 +32,13 @@ app.post("/signup",async function(req,res)
     const name=req.body.name;
     const password=req.body.password;
 
+    const hashedPword=await bcrypt.hash(password,5);
+    console.log(hashedPword)
     await UserModel.create(  // without this await the response will not be given
         {
             email:email,
             name:name,
-            password:password
+            password:hashedPword
         }
     )
     res.json({
@@ -54,11 +56,21 @@ app.post("/signin", async function(req,res)
     const user= await UserModel.findOne(
         {
             email:email,
-            password:password
+            
         }
     )
-    console.log(user)
-    if (user)
+
+    if(!user)
+    {
+
+        res.status(403).json(
+            {
+                message:"User not found"
+            }
+        )
+    }
+    const matchPword=await bcrypt.compare(password,user.password) //checking whether password matches
+    if (matchPword)
     {
         const token=jwt.sign(
             {id:user._id.toString()}   //id:user.  format
@@ -103,7 +115,7 @@ app.post("/todo",auth,async function(req,res)
 
 })
 
-app.get("/todos",async function(req,res)
+app.get("/todos",auth,async function(req,res)
 {
     const userId=req.userId
     const todos=await TodoModel.find({
@@ -123,12 +135,15 @@ app.put("/todo/:id",auth,async function(req,res)
     const userId=req.userId
     const{title,done}=req.body
 
-    const todo=await TodoModel.findByIdAndUpdate(todoId,{title,done},{new:true})
+    const todo=await TodoModel.findByIdAndUpdate({ _id: todoid, userId },{title,done},{new:true})
     if (todo)
     {
         res.json({
             message:"Todo updated",todo
         })
+    }
+    else {
+        res.status(404).json({ message: "Todo not found" });
     }
 })
 app.delete("/todo/:id",auth,async function(req,res)
@@ -136,13 +151,15 @@ app.delete("/todo/:id",auth,async function(req,res)
     const id=req.params.id;
     const userId=req.userId
     
-
     const todo=await TodoModel.findByIdAndDelete({_id:id,userId})
     if (todo)
     {
         res.json({
             message:"Todo updated",todo
         })
+    }
+    else {
+        res.status(404).json({ message: "Todo not found" });
     }
 })
 app.listen(3007)
